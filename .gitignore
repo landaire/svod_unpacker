@@ -6,3 +6,4 @@ svod_unpacker.qml
 *.exe
 *.autosave
 *.user
+svod_unpacker.pro.user
