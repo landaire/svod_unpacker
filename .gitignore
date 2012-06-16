@@ -4,3 +4,5 @@ svod_unpacker.qmlproject
 svod_unpacker.qml
 *.app
 *.exe
+*.autosave
+*.user
