@@ -46,9 +46,16 @@ void GdfxPackage::Initialize( void )
     std::string magic = Magic();
     if (magic.compare("MICROSOFT*XBOX*MEDIA"))
         throw xException(std::string("GDFX volume has a bad magic"), 0xBAADF00D);
+    RootBlockIsDvdSignature = false;
     DataBlockCount = package->DataBlockCount();
     DataBlockOffset = package->DataBlockOffset();
     BaseOffset = (UINT64)(DataBlockOffset << 12) - 0x1000;
+    // Let's check to see if the root directory is the
+    // SDK tool's signature block
+    fileStream->SetPosition(SeekToBlock(RootBlock()));
+    std::string signature = fileStream->ReadString(0x18);
+    if (!signature.compare("XBOX_DVD_LAYOUT_TOOL_SIG"))
+        RootBlockIsDvdSignature = true;
     // Read the root dir
     RootDirectory = new Folder();
     std::vector<Dirent> RootDirents = LoadDirents(RootBlock(), RootSize());
@@ -132,12 +139,16 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
 
             returnVector.push_back(d);
 
-            BYTE result = 0xFF;
-            do
+            BYTE result = 0x0;
+            int reads = 0;
+            for (int i = 0; i < 4; i++, reads++)
             {
                 result = fileStream->ReadByte();
+                if (result != 0xFF)
+                    break;
             }
-            while(result != 0x0);
+            if (reads == 4)
+                break;
             fileStream->SetPosition(fileStream->Position() - 1);
 
             EndOfBlock = fileStream->ReadUInt32();
@@ -163,7 +174,9 @@ UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
     // Now calculate the number of hash tables IN the files there are
     HashTables = RawOffset / DATA_BETWEEN_TABLES;
     RawOffset += HashTables * HASH_TABLE_SIZE;
-    return RawOffset - 0x1000;
+    if (!RootBlockIsDvdSignature)
+        RawOffset -= 0x1000;
+    return RawOffset;
 }
 
 void GdfxPackage::LoadFolderDirents(Folder *f, bool Recursive)
@@ -181,6 +194,8 @@ void GdfxPackage::LoadFolderDirents(Folder *f, bool Recursive)
             folder->DirentsRead = false;
             folder->Entry = dirent;
             folder->FullPath = dirent.FileName;
+            if (Recursive)
+                LoadFolderDirents(folder);
             f->Folders.push_back(folder);
         }
         else

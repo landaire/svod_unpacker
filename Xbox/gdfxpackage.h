@@ -21,8 +21,9 @@ public:
     void Close( void );
 
     UINT64 BaseOffset;
-    DWORD DataBlockCount; // really an int24
-    DWORD DataBlockOffset; // really an int24
+    DWORD DataBlockCount;
+    DWORD DataBlockOffset;
+    bool RootBlockIsDvdSignature; // XBOX_DVD_LAYOUT_TOOL_SIG
 
     std::string Magic( void );
     DWORD RootBlock( void );
