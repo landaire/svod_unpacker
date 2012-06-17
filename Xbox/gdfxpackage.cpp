@@ -103,6 +103,8 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
 {
     // Initialize our return vector
     std::vector<Dirent> returnVector;
+    if (Size == 0)
+        return returnVector;
     int Blocks = Size / BLOCK_SIZE;
     if (!Blocks)
         Blocks++;
@@ -151,7 +153,7 @@ UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
     UINT64 RawOffset = (UINT64)Block * BLOCK_SIZE;
     RawOffset -= BaseOffset;
     // Now that we have the raw offset, determine how many file start hash tables are between 0 and here
-    UINT16 HashTables = RawOffset + (RawOffset % FILE_MAX_SIZE);
+    UINT64 HashTables = RawOffset + (RawOffset % FILE_MAX_SIZE);
     HashTables /= FILE_MAX_SIZE;
     // If the number was too small (offset is in the first file), increment it
     if (!HashTables)
@@ -159,8 +161,7 @@ UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
     // Add the number of hash tables * 0x2000 to the RawOffset
     RawOffset += HashTables * 0x2000;
     // Now calculate the number of hash tables IN the files there are
-    HashTables = RawOffset + (RawOffset % DATA_BETWEEN_TABLES);
-    HashTables /= DATA_BETWEEN_TABLES;
+    HashTables = RawOffset / DATA_BETWEEN_TABLES;
     RawOffset += HashTables * HASH_TABLE_SIZE;
     return RawOffset - 0x1000;
 }

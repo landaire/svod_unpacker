@@ -53,10 +53,9 @@ void MainWindow::LoadGdfxPackage( void )
 
 void MainWindow::LoadFolderItems(Folder *f, QTreeWidgetItem *parent)
 {
-    parent->setText(0, QString::fromStdString(RootDirectory->Files[i].FileName));
-    parent->setText(1, QString::fromLocal8Bit("Folder"));
-    parent->setText(2, QString("0x%1").arg(f->Entry.Offset, 0, 16));
-    parent->setText(3, QString("0x%1").arg(f->Entry.Length, 0, 16));
+    parent->setText(0, QString::fromStdString(f->Entry.FileName));
+    parent->setText(1, QString("0x%1").arg(f->Entry.Offset, 0, 16));
+    parent->setText(2, QString("0x%1").arg(f->Entry.Length, 0, 16));
     for (int i = 0; i < f->Folders.size(); i++)// for (Folder *folder : f->Folders)
     {
         QTreeWidgetItem *item = new QTreeWidgetItem(parent);
@@ -67,9 +66,8 @@ void MainWindow::LoadFolderItems(Folder *f, QTreeWidgetItem *parent)
     {
         QTreeWidgetItem *item = new QTreeWidgetItem(parent);
         item->setText(0, QString::fromStdString(f->Files[i].FileName));
-        item->setText(1, QString::fromLocal8Bit("File"));
-        item->setText(2, QString("0x%1").arg(f->Files[i].Offset, 0, 16));
-        item->setText(3, QString("0x%1").arg(f->Files[i].Length, 0, 16));
+        item->setText(1, QString("0x%1").arg(f->Files[i].Offset, 0, 16));
+        item->setText(2, QString("0x%1").arg(f->Files[i].Length, 0, 16));
     }
 }
 
