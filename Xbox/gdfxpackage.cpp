@@ -146,6 +146,7 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
             fileStream->SetPosition(fileStream->Position() - 2);
         }
     }
+    return returnVector;
 }
 
 UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
