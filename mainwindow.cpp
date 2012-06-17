@@ -4,6 +4,7 @@
 #include "Xbox/IO/xFileStream.h"
 #include "Xbox/xexception.h"
 #include <sstream>
+#include "Xbox/nowide/convert.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -37,12 +38,22 @@ void MainWindow::LoadGdfxPackage( void )
     {
         QTreeWidgetItem *item = new QTreeWidgetItem();
         LoadFolderItems(RootDirectory->Folders[i], item);
+        ui->treeWidget->insertTopLevelItem(i, item);
+    }
+    for (int i = 0; i < RootDirectory->Files.size(); i++)
+    {
+        QTreeWidgetItem *item = new QTreeWidgetItem();
+        item->setText(0, QString::fromStdString(RootDirectory->Files[i].FileName));
+        item->setText(1, QString::fromLocal8Bit("File"));
+        item->setText(2, QString("0x%1").arg(RootDirectory->Files[i].Offset, 0, 16));
+        item->setText(3, QString("0x%1").arg(RootDirectory->Files[i].Length, 0, 16));
+        ui->treeWidget->insertTopLevelItem(ui->treeWidget->topLevelItemCount(), item);
     }
 }
 
 void MainWindow::LoadFolderItems(Folder *f, QTreeWidgetItem *parent)
 {
-    parent->setText(0, QString::fromLocal8Bit(f->Entry.FileName.c_str()));
+    parent->setText(0, QString::fromStdString(RootDirectory->Files[i].FileName));
     parent->setText(1, QString::fromLocal8Bit("Folder"));
     parent->setText(2, QString("0x%1").arg(f->Entry.Offset, 0, 16));
     parent->setText(3, QString("0x%1").arg(f->Entry.Length, 0, 16));
@@ -55,7 +66,7 @@ void MainWindow::LoadFolderItems(Folder *f, QTreeWidgetItem *parent)
     for (int i = 0; i < f->Files.size(); i++)// for (Dirent file : f->Files)
     {
         QTreeWidgetItem *item = new QTreeWidgetItem(parent);
-        item->setText(0, QString::fromLocal8Bit(f->Files[i].FileName.c_str()));
+        item->setText(0, QString::fromStdString(f->Files[i].FileName));
         item->setText(1, QString::fromLocal8Bit("File"));
         item->setText(2, QString("0x%1").arg(f->Files[i].Offset, 0, 16));
         item->setText(3, QString("0x%1").arg(f->Files[i].Length, 0, 16));
@@ -77,7 +88,11 @@ void MainWindow::OpenDirectory( void )
     if (datapath == "")
         return;
 
+#ifndef _WIN32
     Streams::xFileStream *stream = new Streams::xFileStream(svodpath.toLocal8Bit().data(), Streams::Open);
+#else
+    Streams::xFileStream *stream = new Streams::xFileStream(svodpath.toStdWString().c_str(), Streams::Open);
+#endif
     stfspackage = new StfsPackage(stream);
     std::vector<std::string> DataPaths;
     for (int i = 0; i < 1000; i++)

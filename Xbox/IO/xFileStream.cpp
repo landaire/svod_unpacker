@@ -2,6 +2,7 @@
 #include "xFileStream.h"
 #include <QDebug>
 #include "../xexception.h"
+#include "../nowide/convert.h"
 
 namespace Streams
 {
@@ -18,7 +19,12 @@ xFileStream::xFileStream(wchar_t *FilePath, int Mode)
 
 xFileStream::xFileStream(std::string FilePath, int Mode )
 {
+#ifndef _WIN32
     Initialize((void*)FilePath.c_str(), Mode, false);
+#else
+    std::wstring path = nowide::convert(FilePath);
+    Initialize((void*)path.c_str(), Mode, true);
+#endif
 }
 
 xFileStream::xFileStream(std::wstring FilePath, int Mode)
@@ -46,6 +52,8 @@ void xFileStream::Initialize(void *FilePath, int Mode, bool wchar)
 #endif
 #ifdef _WIN32
     TCHAR *CharPath = (TCHAR*)FilePath;
+    if (!wchar)
+        CharPath = (wchar_t*)nowide::convert(std::string((char*)FilePath)).c_str();
 #endif
     switch (Mode)
     {
@@ -62,7 +70,7 @@ void xFileStream::Initialize(void *FilePath, int Mode, bool wchar)
         if (temp.is_open())
         {
             temp.close();
-            throw xException("Cannot create new file over existing", CreateNew);
+            throw xException(std::string("Cannot create new file over existing"), CreateNew);
         }
         iosMode |= std::ios::in | std::ios::out | std::ios::trunc;
     }

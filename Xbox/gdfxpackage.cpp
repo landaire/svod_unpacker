@@ -62,6 +62,7 @@ void GdfxPackage::Initialize( void )
             f->DirentsRead = false;
             f->Entry = dirent;
             f->FullPath = dirent.FileName;
+            LoadFolderDirents(f);
             RootDirectory->Folders.push_back(f);
         }
         else
@@ -111,14 +112,14 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
         fileStream->SetPosition(SeekToBlock(Block));
         UINT64 BlockOffset = fileStream->Position();
         // Check to see if we've reached the end of the block yet
-        UINT16 EndOfBlock = fileStream->ReadUInt16();
-        fileStream->SetPosition(fileStream->Position() - 2);
+        UINT32 EndOfBlock = fileStream->ReadUInt32();
+        fileStream->SetPosition(fileStream->Position() - 4);
         // Loop until we either hit the end of the dirents (0xFFFF), or the end of the block
-        while (EndOfBlock != 0xFFFF && fileStream->Position() < BlockOffset + BLOCK_SIZE)
+        while (EndOfBlock != 0xFFFFFFFF && fileStream->Position() < BlockOffset + BLOCK_SIZE)
         {
             Dirent d = {0};
-            // Skip the first 32 bytes -- no idea what they are
-            fileStream->SetPosition(fileStream->Position() + 0x32);
+            // Skip the first 2 shorts -- no idea what they are
+            fileStream->SetPosition(fileStream->Position() + 0x4);
             fileStream->SetEndianness(Streams::Little);
             d.Offset = fileStream->ReadUInt32();
             d.Length = fileStream->ReadUInt32();
@@ -129,21 +130,16 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
 
             returnVector.push_back(d);
 
-            while(fileStream->Position() & 0xF != 0)
+            BYTE result = 0xFF;
+            do
             {
-                switch (fileStream->Position() & 0xF)
-                {
-                case 0x4:
-                case 0x8:
-                case 0xC:
-                    break;
-                default:
-                    fileStream->SetPosition(fileStream->Position() + 1);
-                }
+                result = fileStream->ReadByte();
             }
+            while(result != 0x0);
+            fileStream->SetPosition(fileStream->Position() - 1);
 
-            EndOfBlock = fileStream->ReadUInt16();
-            fileStream->SetPosition(fileStream->Position() - 2);
+            EndOfBlock = fileStream->ReadUInt32();
+            fileStream->SetPosition(fileStream->Position() - 4);
         }
     }
     return returnVector;
@@ -163,9 +159,10 @@ UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
     // Add the number of hash tables * 0x2000 to the RawOffset
     RawOffset += HashTables * 0x2000;
     // Now calculate the number of hash tables IN the files there are
-    HashTables = (RawOffset % DATA_BETWEEN_TABLES);
+    HashTables = RawOffset + (RawOffset % DATA_BETWEEN_TABLES);
+    HashTables /= DATA_BETWEEN_TABLES;
     RawOffset += HashTables * HASH_TABLE_SIZE;
-    return RawOffset;
+    return RawOffset - 0x1000;
 }
 
 void GdfxPackage::LoadFolderDirents(Folder *f, bool Recursive)
