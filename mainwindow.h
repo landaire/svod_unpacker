@@ -2,6 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "./Xbox/stfspackage.h"
+#include "./Xbox/gdfxpackage.h"
+#include "./Xbox/Structures.h"
+#include <QTreeWidgetItem>
 
 namespace Ui {
 class MainWindow;
@@ -23,8 +27,14 @@ private:
     QIcon iFile;
     // Sets the slots for the applications
     void SetSlots( void );
+    void LoadGdfxPackage( void );
+    void LoadFolderItems( Folder *f, QTreeWidgetItem *parent );
+
+    StfsPackage *stfspackage;
+    GdfxPackage *gdfxpackage;
 public slots:
     void OpenDirectory( void );
+    void Extract( void );
 };
 
 #endif // MAINWINDOW_H

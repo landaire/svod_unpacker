@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "../StdAfx.h"
 #include "xFileStream.h"
 #include <QDebug>
 #include "../xexception.h"

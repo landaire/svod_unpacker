@@ -108,6 +108,24 @@ QImage StfsPackage::TitleImage( void )
     return QImage::fromData(QByteArray::fromRawData((const char*)&Image, Size));
 }
 
+DWORD StfsPackage::DataBlockCount( void )
+{
+    Stream->SetPosition(0x392);
+    Stream->SetEndianness(Streams::Little);
+    DWORD Value = Stream->ReadUInt32();
+    Stream->SetEndianness(Streams::Big);
+    return Value;
+}
+
+DWORD StfsPackage::DataBlockOffset( void )
+{
+    Stream->SetPosition(0x395);
+    Stream->SetEndianness(Streams::Little);
+    DWORD Value = Stream->ReadUInt32();
+    Stream->SetEndianness(Streams::Big);
+    return Value;
+}
+
 QString StfsPackage::ContentType_s( void )
 {
     DWORD ContentType = this->ContentType();

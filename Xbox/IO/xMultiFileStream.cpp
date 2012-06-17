@@ -1,9 +1,9 @@
-#include "StdAfx.h"
+#include "../stdafx.h"
 #include "xMultiFileStream.h"
 #include <QDebug>
 namespace Streams
 {
-xMultiFileStream::xMultiFileStream( std::vector<std::wstring> InPaths )
+xMultiFileStream::xMultiFileStream( std::vector<std::string> InPaths )
 {
     _Length = 0;
     _Endian = Big;

@@ -33,14 +33,14 @@ namespace Streams
 		int _Endian;
 		INT64 _Length;
 
-		void* DetermineAndDoEndianSwap( void* Data, size_t DataLength, size_t ElementSize, bool IsByteArray );
-		void* DetermineAndDoEndianSwap( void* Data, size_t DataLength, size_t ElementSize, bool IsByteArray, bool Reverse );
-        void DetermineAndDoArraySwap( BYTE* Data, int Length );
-        void DetermineAndDoArraySwap( BYTE* Data, int Length, bool ReverseOrder );
-
 	public:
 
 		bool IsClosed;
+
+        void* DetermineAndDoEndianSwap( void* Data, size_t DataLength, size_t ElementSize, bool IsByteArray );
+        void* DetermineAndDoEndianSwap( void* Data, size_t DataLength, size_t ElementSize, bool IsByteArray, bool Reverse );
+        void DetermineAndDoArraySwap( BYTE* Data, int Length );
+        void DetermineAndDoArraySwap( BYTE* Data, int Length, bool ReverseOrder );
 
         virtual INT64 Position      ( void ) =0;
         virtual void SetPosition	( INT64 Position ) =0;
