@@ -5,8 +5,8 @@
 #include <vector>
 struct Dirent
 {
-    UINT16 Offset;
-    UINT16 Length;
+    DWORD Offset;
+    DWORD Length;
     BYTE Flag;
     BYTE FileNameLength;
     std::string FileName;

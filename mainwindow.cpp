@@ -77,14 +77,27 @@ void MainWindow::OpenDirectory( void )
     QString svodpath = QFileDialog::getOpenFileName(this, QString::fromLocal8Bit("Open SVOD Container"));
     if (svodpath == "")
         return;
-    QString datapath;
-    // Use an OpenFolderDialog
-    QFileDialog qfd;
-    qfd.setFileMode(QFileDialog::Directory);
-    qfd.setOption(QFileDialog::ShowDirsOnly);
-    datapath = qfd.getExistingDirectory(this, QString::fromAscii("Open Data File Directory"));
-    if (datapath == "")
-        return;
+    QString datapath("");
+    try
+    {
+    #ifndef _WIN32
+        Streams::xFileStream *stream = new Streams::xFileStream((svodpath + ".data/Data0000").toLocal8Bit().data(), Streams::Open);
+    #else
+        Streams::xFileStream *stream = new Streams::xFileStream((svodpath + ".data/Data0000").toStdWString().c_str(), Streams::Open);
+    #endif
+        stream->Close();
+        datapath = (svodpath + ".data");
+    }
+    catch (xException e)
+    {
+        // Use an OpenFolderDialog
+        QFileDialog qfd;
+        qfd.setFileMode(QFileDialog::Directory);
+        qfd.setOption(QFileDialog::ShowDirsOnly);
+        datapath = qfd.getExistingDirectory(this, QString::fromAscii("Open Data File Directory"));
+        if (datapath == "")
+            return;
+    }
 
 #ifndef _WIN32
     Streams::xFileStream *stream = new Streams::xFileStream(svodpath.toLocal8Bit().data(), Streams::Open);

@@ -44,18 +44,26 @@ void GdfxPackage::Initialize( void )
 {
     // Check the magic
     std::string magic = Magic();
-    if (magic.compare("MICROSOFT*XBOX*MEDIA"))
+    if (magic != "MICROSOFT*XBOX*MEDIA")
         throw xException(std::string("GDFX volume has a bad magic"), 0xBAADF00D);
     RootBlockIsDvdSignature = false;
     DataBlockCount = package->DataBlockCount();
     DataBlockOffset = package->DataBlockOffset();
     BaseOffset = (UINT64)(DataBlockOffset << 12) - 0x1000;
+    fileStream->SetPosition((SeekToBlock(RootBlock()) - 0x800) + 0x100C - 0x20);
+    qDebug("0x%lX", fileStream->Position());
+    magic = fileStream->ReadString(0x14);
+    if (magic == "MICROSOFT*XBOX*MEDIA")
+        RootBlockIsDvdSignature = true;
     // Let's check to see if the root directory is the
     // SDK tool's signature block
-    fileStream->SetPosition(SeekToBlock(RootBlock()));
-    std::string signature = fileStream->ReadString(0x18);
-    if (!signature.compare("XBOX_DVD_LAYOUT_TOOL_SIG"))
-        RootBlockIsDvdSignature = true;
+    if (!RootBlockIsDvdSignature)
+    {
+        fileStream->SetPosition(SeekToBlock(RootBlock()));
+        std::string signature = fileStream->ReadString(0x18);
+        if (signature == "XBOX_DVD_LAYOUT_TOOL_SIG")
+            RootBlockIsDvdSignature = true;
+    }
     // Read the root dir
     RootDirectory = new Folder();
     std::vector<Dirent> RootDirents = LoadDirents(RootBlock(), RootSize());
@@ -130,12 +138,31 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
             // Skip the first 2 shorts -- no idea what they are
             fileStream->SetPosition(fileStream->Position() + 0x4);
             fileStream->SetEndianness(Streams::Little);
+            qDebug("Position: 0x%lX", fileStream->Position());
             d.Offset = fileStream->ReadUInt32();
             d.Length = fileStream->ReadUInt32();
             fileStream->SetEndianness(Streams::Big);
             d.Flag = fileStream->ReadByte();
+            switch (d.Flag)
+            {
+            case Attributes::ARCHIVE:
+            case Attributes::DEVICE:
+            case Attributes::DIRECTORY:
+            case Attributes::HIDDEN:
+            case Attributes::NORMAL:
+            case Attributes::READONLY:
+            case Attributes::SYSTEM:
+            case Attributes::TEMPORARY:
+                break;
+            default:
+                throw xException("Unknown attribute.  Possibly in the wrong area!");
+            }
+
             d.FileNameLength = fileStream->ReadByte();
             d.FileName = fileStream->ReadString(d.FileNameLength);
+
+            if (d.FileName == "audio")
+                qDebug("audio!");
 
             returnVector.push_back(d);
 
@@ -160,23 +187,29 @@ std::vector<Dirent> GdfxPackage::LoadDirents(DWORD Block, DWORD Size)
 
 UINT64 GdfxPackage::SeekToBlock(UINT32 Block)
 {
-    // Calculate the raw offset (i.e. offset if there were no hash tables)
-    UINT64 RawOffset = (UINT64)Block * BLOCK_SIZE;
-    RawOffset -= BaseOffset;
-    // Now that we have the raw offset, determine how many file start hash tables are between 0 and here
-    UINT64 HashTables = RawOffset + (RawOffset % FILE_MAX_SIZE);
-    HashTables /= FILE_MAX_SIZE;
-    // If the number was too small (offset is in the first file), increment it
-    if (!HashTables)
-        HashTables++;
-    // Add the number of hash tables * 0x2000 to the RawOffset
-    RawOffset += HashTables * 0x2000;
-    // Now calculate the number of hash tables IN the files there are
-    HashTables = RawOffset / DATA_BETWEEN_TABLES;
-    RawOffset += HashTables * HASH_TABLE_SIZE;
+    // Calculate the offset before shifting the hash table
+    UINT64 Offset = (UINT64)(Block * (UINT64)BLOCK_SIZE);
+    UINT64 ReturnOffset = Offset;
+
+    // Determine which data file we're in
+    UINT16 DataFile = Block / BLOCKS_MAX;
+
+    // Add the hashes from all of those files to the offset
+    ReturnOffset += DataFile * HASH_BLOCKS_PER_FILE * HASH_TABLE_SIZE;
+    ReturnOffset += DataFile * 0x1000;
+
+    Block -= (DataFile * BLOCKS_MAX);
+    // Determine the number of hashes apply for this file
+    UINT64 HashTableSize = (Block / 0x198) * HASH_TABLE_SIZE;
+    if ((Block * BLOCK_SIZE) <= 0x2000)
+        HashTableSize = 0;
+    ReturnOffset += HashTableSize;
+    ReturnOffset += 0x2000;
+    ReturnOffset -= BaseOffset;
     if (!RootBlockIsDvdSignature)
-        RawOffset -= 0x1000;
-    return RawOffset;
+        ReturnOffset -= 0x1000;
+    qDebug() << QString::fromAscii("Offset: 0x%1").arg((qlonglong)ReturnOffset, 0, 16);
+    return ReturnOffset;
 }
 
 void GdfxPackage::LoadFolderDirents(Folder *f, bool Recursive)
@@ -193,9 +226,12 @@ void GdfxPackage::LoadFolderDirents(Folder *f, bool Recursive)
             Folder* folder = new Folder();
             folder->DirentsRead = false;
             folder->Entry = dirent;
-            folder->FullPath = dirent.FileName;
+            folder->FullPath = (f->FullPath + "/") + dirent.FileName;
             if (Recursive)
+            {
+                qDebug("Loading folder: %s", folder->FullPath.c_str());
                 LoadFolderDirents(folder);
+            }
             f->Folders.push_back(folder);
         }
         else

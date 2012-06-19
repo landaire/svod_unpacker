@@ -15,6 +15,10 @@ class GdfxPackage
 #define HASH_TABLE_SIZE     0x1000
 // Maximum size for a Dataxxxx file
 #define FILE_MAX_SIZE       0xA290000
+// Maximum number of blocks per Data file
+#define BLOCKS_MAX          0x14388
+// Number of hash tables per file (including the two at the beginning)
+#define HASH_BLOCKS_PER_FILE 0xCB
 public:
     GdfxPackage(std::vector<std::string> FilePath, StfsPackage *package);
     GdfxPackage(Streams::IStream* FileStream, StfsPackage *package);
